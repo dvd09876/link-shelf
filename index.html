@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Shelf - Sua Prateleira Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .shelf-item {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .shelf-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .shelf-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .file-input-label {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .file-input-label:hover {
+            background-color: #e2e8f0;
+        }
+        .tag {
+            transition: all 0.2s ease;
+        }
+        .tag:hover {
+            transform: scale(1.05);
+        }
+        @media (max-width: 640px) {
+            .shelf-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-indigo-700">
+                    <i class="fas fa-bookmark mr-2"></i> Link Shelf
+                </h1>
+                <button id="toggleTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                    <i class="fas fa-moon text-gray-700 dark:text-yellow-300"></i>
+                </button>
+            </div>
+            <p class="text-gray-600 mt-2">Sua prateleira digital para organizar links e imagens</p>
+        </header>
+
+        <!-- Add New Link Form -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">
+                <i class="fas fa-plus-circle mr-2 text-indigo-500"></i> Adicionar Novo Link
+            </h2>
+            <form id="linkForm" class="space-y-4">
+                <div>
+                    <label for="linkTitle" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+                    <input type="text" id="linkTitle" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Meu link favorito" required>
+                </div>
+                
+                <div>
+                    <label for="linkUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                    <input type="url" id="linkUrl" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://exemplo.com" required>
+                </div>
+                
+                <div>
+                    <label for="linkDescription" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea id="linkDescription" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Breve descrição sobre o link"></textarea>
+                </div>
+                
+                <div>
+                    <label for="linkTags" class="block text-sm font-medium text-gray-700 mb-1">Tags (separadas por vírgula)</label>
+                    <input type="text" id="linkTags" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="trabalho, estudo, lazer">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Imagem</label>
+                    <label for="linkImage" class="file-input-label flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                            <p class="mb-2 text-sm text-gray-500">Clique para selecionar ou arraste uma imagem</p>
+                            <p class="text-xs text-gray-500">PNG, JPG ou GIF (Máx. 5MB)</p>
+                        </div>
+                        <input id="linkImage" type="file" class="hidden" accept="image/*">
+                    </label>
+                    <div id="imagePreviewContainer" class="mt-2 hidden">
+                        <img id="imagePreview" src="#" alt="Pré-visualização da imagem" class="max-h-32 rounded-md">
+                        <button type="button" id="removeImage" class="mt-2 text-red-500 text-sm flex items-center">
+                            <i class="fas fa-trash mr-1"></i> Remover imagem
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+                        <i class="fas fa-save mr-2"></i> Salvar Link
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex-1">
+                    <label for="searchInput" class="sr-only">Buscar links</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Buscar links...">
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div>
+                        <label for="tagFilter" class="sr-only">Filtrar por tag</label>
+                        <select id="tagFilter" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">Todas as tags</option>
+                            <!-- Tags will be added dynamically -->
+                        </select>
+                    </div>
+                    <button id="clearFilters" class="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        Limpar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Shelf -->
+        <div>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center">
+                <i class="fas fa-book-open mr-2 text-indigo-500"></i> Sua Prateleira
+                <span id="linkCount" class="ml-2 text-sm bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">0 links</span>
+            </h2>
+            
+            <div id="noLinksMessage" class="bg-white rounded-lg shadow-md p-8 text-center">
+                <i class="fas fa-box-open text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-xl font-medium text-gray-700 mb-2">Sua prateleira está vazia</h3>
+                <p class="text-gray-500 mb-4">Adicione seu primeiro link para começar a organizar!</p>
+            </div>
+            
+            <div id="shelfContainer" class="shelf-container">
+                <!-- Links will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Details Modal -->
+    <div id="linkModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-start">
+                                <h3 id="modalTitle" class="text-lg leading-6 font-medium text-gray-900"></h3>
+                                <button id="closeModal" type="button" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <a id="modalUrl" href="#" target="_blank" class="text-indigo-600 hover:text-indigo-800 break-all"></a>
+                                <p id="modalDescription" class="mt-2 text-gray-600"></p>
+                                <div id="modalImageContainer" class="mt-4">
+                                    <img id="modalImage" src="#" alt="Link image" class="max-w-full max-h-64 rounded-md mx-auto">
+                                </div>
+                                <div id="modalTags" class="mt-4 flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="visitLink" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-external-link-alt mr-2"></i> Visitar Link
+                    </button>
+                    <button id="deleteLink" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-red-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-trash mr-2"></i> Excluir
+                    </button>
+                    <button id="editLink" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-edit mr-2"></i> Editar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        const toggleTheme = document.getElementById('toggleTheme');
+        const themeIcon = toggleTheme.querySelector('i');
+        
+        toggleTheme.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeIcon.classList.remove('text-gray-700');
+                themeIcon.classList.add('text-yellow-300');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                themeIcon.classList.remove('text-yellow-300');
+                themeIcon.classList.add('text-gray-700');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Check for saved theme preference
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
+            themeIcon.classList.remove('text-gray-700');
+            themeIcon.classList.add('text-yellow-300');
+        }
+
+        // Image preview
+        const linkImage = document.getElementById('linkImage');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const removeImage = document.getElementById('removeImage');
+
+        linkImage.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        removeImage.addEventListener('click', function() {
+            linkImage.value = '';
+            imagePreviewContainer.classList.add('hidden');
+        });
+
+        // Link storage
+        let links = JSON.parse(localStorage.getItem('links')) || [];
+        let currentEditId = null;
+
+        // Form submission
+        const linkForm = document.getElementById('linkForm');
+        const linkTitle = document.getElementById('linkTitle');
+        const linkUrl = document.getElementById('linkUrl');
+        const linkDescription = document.getElementById('linkDescription');
+        const linkTags = document.getElementById('linkTags');
+
+        linkForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = linkTitle.value.trim();
+            const url = linkUrl.value.trim();
+            const description = linkDescription.value.trim();
+            const tags = linkTags.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+            
+            // Get image as base64
+            let imageBase64 = '';
+            if (linkImage.files && linkImage.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageBase64 = e.target.result;
+                    saveLink(title, url, description, tags, imageBase64);
+                }
+                reader.readAsDataURL(linkImage.files[0]);
+            } else {
+                saveLink(title, url, description, tags, imageBase64);
+            }
+        });
+
+        function saveLink(title, url, description, tags, imageBase64) {
+            const link = {
+                id: Date.now().toString(),
+                title,
+                url,
+                description,
+                tags,
+                image: imageBase64,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (currentEditId) {
+                // Update existing link
+                const index = links.findIndex(l => l.id === currentEditId);
+                if (index !== -1) {
+                    // Keep the same image if not changed
+                    if (!imageBase64 && links[index].image) {
+                        link.image = links[index].image;
+                    }
+                    links[index] = link;
+                }
+                currentEditId = null;
+            } else {
+                // Add new link
+                links.unshift(link);
+            }
+            
+            localStorage.setItem('links', JSON.stringify(links));
+            renderLinks();
+            resetForm();
+            closeModal();
+        }
+
+        function resetForm() {
+            linkForm.reset();
+            imagePreviewContainer.classList.add('hidden');
+            currentEditId = null;
+        }
+
+        // Render links
+        const shelfContainer = document.getElementById('shelfContainer');
+        const noLinksMessage = document.getElementById('noLinksMessage');
+        const linkCount = document.getElementById('linkCount');
+
+        function renderLinks(filteredLinks = null) {
+            const linksToRender = filteredLinks || links;
+            
+            if (linksToRender.length === 0) {
+                noLinksMessage.classList.remove('hidden');
+                shelfContainer.classList.add('hidden');
+                linkCount.textContent = '0 links';
+            } else {
+                noLinksMessage.classList.add('hidden');
+                shelfContainer.classList.remove('hidden');
+                linkCount.textContent = `${linksToRender.length} ${linksToRender.length === 1 ? 'link' : 'links'}`;
+                
+                shelfContainer.innerHTML = '';
+                
+                linksToRender.forEach(link => {
+                    const linkElement = document.createElement('div');
+                    linkElement.className = 'shelf-item bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg';
+                    linkElement.innerHTML = `
+                        <div class="h-full flex flex-col">
+                            ${link.image ? `
+                                <div class="h-40 overflow-hidden">
+                                    <img src="${link.image}" alt="${link.title}" class="w-full h-full object-cover">
+                                </div>
+                            ` : `
+                                <div class="h-40 bg-gray-100 flex items-center justify-center">
+                                    <i class="fas fa-link text-4xl text-gray-400"></i>
+                                </div>
+                            `}
+                            <div class="p-4 flex-grow">
+                                <h3 class="font-semibold text-lg mb-1 text-gray-800 truncate">${link.title}</h3>
+                                <p class="text-gray-600 text-sm mb-3 line-clamp-2">${link.description || 'Sem descrição'}</p>
+                                <div class="flex flex-wrap gap-1 mb-3">
+                                    ${link.tags.map(tag => `
+                                        <span class="tag bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">${tag}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center">
+                                <span class="text-xs text-gray-500">${formatDate(link.createdAt)}</span>
+                                <button class="view-link text-indigo-600 hover:text-indigo-800 text-sm font-medium" data-id="${link.id}">
+                                    Ver detalhes <i class="fas fa-chevron-right ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    shelfContainer.appendChild(linkElement);
+                });
+                
+                // Update tag filter options
+                updateTagFilter();
+            }
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('pt-BR', options);
+        }
+
+        // Modal functionality
+        const linkModal = document.getElementById('linkModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalUrl = document.getElementById('modalUrl');
+        const modalDescription = document.getElementById('modalDescription');
+        const modalImageContainer = document.getElementById('modalImageContainer');
+        const modalImage = document.getElementById('modalImage');
+        const modalTags = document.getElementById('modalTags');
+        const closeModalBtn = document.getElementById('closeModal');
+        const visitLinkBtn = document.getElementById('visitLink');
+        const deleteLinkBtn = document.getElementById('deleteLink');
+        const editLinkBtn = document.getElementById('editLink');
+
+        // Event delegation for view link buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.view-link')) {
+                const linkId = e.target.closest('.view-link').getAttribute('data-id');
+                openModal(linkId);
+            }
+        });
+
+        function openModal(linkId) {
+            const link = links.find(l => l.id === linkId);
+            if (!link) return;
+            
+            modalTitle.textContent = link.title;
+            modalUrl.textContent = link.url;
+            modalUrl.href = link.url;
+            modalDescription.textContent = link.description || 'Sem descrição';
+            
+            if (link.image) {
+                modalImage.src = link.image;
+                modalImageContainer.classList.remove('hidden');
+            } else {
+                modalImageContainer.classList.add('hidden');
+            }
+            
+            modalTags.innerHTML = '';
+            link.tags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded';
+                tagElement.textContent = tag;
+                modalTags.appendChild(tagElement);
+            });
+            
+            visitLinkBtn.setAttribute('data-id', link.id);
+            deleteLinkBtn.setAttribute('data-id', link.id);
+            editLinkBtn.setAttribute('data-id', link.id);
+            
+            linkModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            linkModal.classList.add('hidden');
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+
+        visitLinkBtn.addEventListener('click', function() {
+            const linkId = this.getAttribute('data-id');
+            const link = links.find(l => l.id === linkId);
+            if (link) {
+                window.open(link.url, '_blank');
+            }
+        });
+
+        deleteLinkBtn.addEventListener('click', function() {
+            const linkId = this.getAttribute('data-id');
+            if (confirm('Tem certeza que deseja excluir este link?')) {
+                links = links.filter(l => l.id !== linkId);
+                localStorage.setItem('links', JSON.stringify(links));
+                renderLinks();
+                closeModal();
+            }
+        });
+
+        editLinkBtn.addEventListener('click', function() {
+            const linkId = this.getAttribute('data-id');
+            const link = links.find(l => l.id === linkId);
+            if (!link) return;
+            
+            currentEditId = link.id;
+            linkTitle.value = link.title;
+            linkUrl.value = link.url;
+            linkDescription.value = link.description || '';
+            linkTags.value = link.tags.join(', ');
+            
+            if (link.image) {
+                imagePreview.src = link.image;
+                imagePreviewContainer.classList.remove('hidden');
+            } else {
+                imagePreviewContainer.classList.add('hidden');
+            }
+            
+            closeModal();
+            
+            // Scroll to form
+            document.getElementById('linkForm').scrollIntoView({ behavior: 'smooth' });
+            linkTitle.focus();
+        });
+
+        // Search and filter functionality
+        const searchInput = document.getElementById('searchInput');
+        const tagFilter = document.getElementById('tagFilter');
+        const clearFilters = document.getElementById('clearFilters');
+
+        function updateTagFilter() {
+            // Get all unique tags
+            const allTags = new Set();
+            links.forEach(link => {
+                link.tags.forEach(tag => {
+                    allTags.add(tag);
+                });
+            });
+            
+            // Clear and repopulate tag filter
+            tagFilter.innerHTML = '<option value="">Todas as tags</option>';
+            Array.from(allTags).sort().forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+            });
+        }
+
+        function filterLinks() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedTag = tagFilter.value;
+            
+            const filtered = links.filter(link => {
+                const matchesSearch = link.title.toLowerCase().includes(searchTerm) || 
+                                     link.description.toLowerCase().includes(searchTerm) || 
+                                     link.url.toLowerCase().includes(searchTerm) ||
+                                     link.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+                
+                const matchesTag = !selectedTag || link.tags.includes(selectedTag);
+                
+                return matchesSearch && matchesTag;
+            });
+            
+            renderLinks(filtered);
+        }
+
+        searchInput.addEventListener('input', filterLinks);
+        tagFilter.addEventListener('change', filterLinks);
+        clearFilters.addEventListener('click', function() {
+            searchInput.value = '';
+            tagFilter.value = '';
+            filterLinks();
+        });
+
+        // Initialize
+        renderLinks();
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Rodfiba/link-shelf" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
